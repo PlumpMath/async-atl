@@ -2,15 +2,13 @@
   (:require-macros [cljs.core.async.macros
                     :refer [go]])
   (:require [cljs.core.async
-             :refer [chan <! >!]]))
+             :refer [chan <! >! alts! timeout]]
+            [async-atl.util :refer [clear log]]))
 
-(def display (.getElementById js/document "app"))
 
-(defn log [msg]
-    (set! (.-innerHTML display) (+ (.-innerHTML display) (+ msg "<br />"))))
+;; core.async does communication over channels.
 
-(defn clear []
-  (set! (.-innerHTML display) ""))
+;; writing to a channel blocks unless there is a reader
 
 (let [c (chan)]
   (go
@@ -20,6 +18,8 @@
 
 (clear)
 
+
+;; writing and reading can be done in any order
 (let [c (chan)]
   (go
    (log "About to send")
@@ -27,6 +27,38 @@
    (log "Just sent"))
   (go
    (log "About to receive")
-   (log (str  "I received" (<! c)))))
+   (log (str  "I received " (<! c)))))
 
 (clear)
+
+(let [c (chan)]
+  (go
+   (log "About to receive")
+   (log (str  "I received " (<! c))))
+    (go
+   (log "About to send")
+   (>! c :val)
+   (log "Just sent")))
+
+(clear)
+
+;; timeouts can be used to delay things
+(let [c (chan)]
+(go
+ (>! c "wait for it..."))
+(go
+ (<! (timeout 1000))
+ (log (<! c))))
+
+;; use alts! to implement a timeout
+(let [c (chan)
+      t (timeout 5000)]
+  (go
+   (let [[val port] (alts! [c t])]
+     (if (= port t)
+       (log "operation timed out")
+       (log val))
+   )))
+
+(clear)
+
