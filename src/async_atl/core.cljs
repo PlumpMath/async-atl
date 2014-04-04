@@ -2,14 +2,15 @@
   (:require-macros [cljs.core.async.macros
                     :refer [go]])
   (:require [cljs.core.async
-             :refer [chan <! >! alts! timeout]]
+             :refer [chan <! >! alts! timeout]
+             :as async]
             [async-atl.util :refer [clear log]]))
 
 
 ;; core.async does communication over channels.
 
-;; writing to a channel blocks unless there is a reader
 
+;; writing to a channel blocks unless there is a reader
 (let [c (chan)]
   (go
    (log "We got here")
@@ -61,4 +62,17 @@
    )))
 
 (clear)
+
+;; timeouts and loops can be used to create timers
+(let [c (chan)]
+  (go
+   (dotimes [n 10]
+     (<! (timeout 1000))
+     (>! c n)))
+  (go
+   (while true
+     (log (<! c)))))
+
+
+
 
