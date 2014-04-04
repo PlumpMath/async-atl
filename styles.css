@@ -1,0 +1,28 @@
+body {
+  background-color: silver;
+  height: 100%;
+}
+
+div {
+  width: 80%;
+  margin: auto;
+}
+
+#app {
+  background-color: white;
+  font-size: 24px;
+  color: blue;
+  height: 500px;
+  overflow-y: scroll;
+}
+
+#buttons {
+  background-color: aliceblue;
+}
+
+button {
+  margin-left: 45%;
+  margin-top: 10px;
+  margin-bottom: 15px;
+  height: 40px;
+}

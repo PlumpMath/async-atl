@@ -19,7 +19,6 @@
 
 (clear)
 
-
 ;; writing and reading can be done in any order
 (let [c (chan)]
   (go
@@ -48,7 +47,7 @@
 (go
  (>! c "wait for it..."))
 (go
- (<! (timeout 1000))
+ (<! (timeout 2000))
  (log (<! c))))
 
 ;; use alts! to implement a timeout
@@ -58,8 +57,7 @@
    (let [[val port] (alts! [c t])]
      (if (= port t)
        (log "operation timed out")
-       (log val))
-   )))
+       (log val)))))
 
 (clear)
 
