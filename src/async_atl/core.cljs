@@ -2,9 +2,10 @@
   (:require-macros [cljs.core.async.macros
                     :refer [go]])
   (:require [cljs.core.async
-             :refer [chan <! >! alts! timeout]
+             :refer [chan <! >! alts! timeout put!]
              :as async]
-            [async-atl.util :refer [clear log]]))
+            [async-atl.util
+             :refer [clear log get-element]]))
 
 
 ;; core.async does communication over channels.
@@ -71,6 +72,29 @@
    (while true
      (log (<! c)))))
 
+;; events can be put on channels
+;; This code copied from David Nolen's core.async demo
+;; https://github.com/swannodette/hs-async
+;; https://www.youtube.com/watch?v=AhxcGGeh5ho
+(defn events [el type]
+  (let [out (chan)]
+    (.addEventListener el type
+      (fn [e] (put! out e)))
+    out))
+
+
+(let [click (events (get-element "clickme") "click")]
+  (go (while true
+        (<! click)
+        (clear))))
+
+
+#_(let [click (events (get-element "clickme") "click")]
+  (go (while true
+        (<! click)
+        (.alert js/window
+                "close the channel to stop the event")
+        (close click))))
 
 
 

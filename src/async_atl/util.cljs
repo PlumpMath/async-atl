@@ -1,9 +1,13 @@
 (ns async-atl.util)
 
-(def display (.getElementById js/document "app"))
+(defn get-element [id]
+  (.getElementById js/document id))
+
+(def display (get-element "app"))
 
 (defn log [msg]
-    (set! (.-innerHTML display) (+ (.-innerHTML display) (+ msg "<br />"))))
+    (set! (.-innerHTML display)
+          (+ (.-innerHTML display) (+ msg "<br />"))))
 
 (defn clear []
   (set! (.-innerHTML display) ""))
