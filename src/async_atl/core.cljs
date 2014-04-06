@@ -62,6 +62,13 @@
 
 (clear)
 
+(let [c (chan)
+      t (timeout 1000)]
+  (go
+   (let [[val port] (alts! [(>! c "tst") t])]
+     (log port)
+     (log val))))
+
 ;; timeouts and loops can be used to create timers
 (let [c (chan)]
   (go
@@ -96,5 +103,42 @@
                 "close the channel to stop the event")
         (close click))))
 
+(defn adjust-price [old-price]
 
+  (let  [numerator (- (rand-int 30) 15)
+         adjustment (* numerator 0.01)]
+    (+ old-price adjustment)))
+
+(defn make-ticker [symbol t start-price]
+  (let [c (chan)]
+    (go
+     (loop [price start-price]
+       (let [new-price (+ price 1)]
+         (<! (timeout t))
+         (>! c {:symbol symbol :price new-price})
+         (recur new-price))))
+    c))
+
+(def stocks [ ;; symbol min-interval starting-price
+             ["AAPL" 1000 537 ]
+             ["AMZN" 4000 345]
+             ["CSCO" 4000  22]
+             ["EBAY" 2000 55]
+             ["GOOG" 8000 1127]
+             ["IBM" 2000  192]
+             ["MSFT" 5000 40]
+             ["ORCL" 10000 39]
+             ["RHT" 12000  53]
+             ["T" 6000 35]])
+
+(defn run-sim []
+  (let [ticker (async/merge
+                (map #(apply make-ticker %) stocks))]
+    (go
+     (loop [x 0]
+       (when (< x 20)
+         (log (str x "-" (<! ticker)))
+         (recur (inc x)))))))
+
+#_(run-sim)
 
