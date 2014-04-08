@@ -2,7 +2,8 @@
   (:require-macros [cljs.core.async.macros
                     :refer [go]])
   (:require [cljs.core.async
-             :refer [chan <! >! alts! timeout put!]
+             :refer [chan >! <! put!
+                     alts! timeout close!]
              :as async]
             [async-atl.util
              :refer [clear log get-element]]))
@@ -20,7 +21,7 @@
 
 (clear)
 
-;; writing and reading can be done in any order
+;; Separate blocks communicate over shared channels
 (let [c (chan)]
   (go
    (log "About to send")
@@ -32,6 +33,7 @@
 
 (clear)
 
+;; writing and reading can be done in any order
 (let [c (chan)]
   (go
    (log "About to receive")
@@ -62,22 +64,15 @@
 
 (clear)
 
-(let [c (chan)
-      t (timeout 1000)]
-  (go
-   (let [[val port] (alts! [(>! c "tst") t])]
-     (log port)
-     (log val))))
-
 ;; timeouts and loops can be used to create timers
 (let [c (chan)]
   (go
+   (while true
+     (log (<! c))))
+  (go
    (dotimes [n 10]
      (<! (timeout 1000))
-     (>! c n)))
-  (go
-   (while true
-     (log (<! c)))))
+     (>! c n))))
 
 ;; events can be put on channels
 ;; This code copied from David Nolen's core.async demo
@@ -89,47 +84,37 @@
       (fn [e] (put! out e)))
     out))
 
-
 (let [click (events (get-element "clickme") "click")]
   (go (while true
         (<! click)
         (clear))))
 
-
 #_(let [click (events (get-element "clickme") "click")]
-  (go (while true
-        (<! click)
-        (.alert js/window
-                "close the channel to stop the event")
-        (close click))))
+  (go
+       (<! click)
+       (.alert js/window
+                "here is a one shot event listener")))
+
+(def stocks [ ;; symbol min-interval starting-price
+             ["AAPL" 1800 537 ]
+             ["AMZN" 3800 345]
+             ["GOOG" 5100 1127]
+             ["MSFT" 8300 40]
+             ["RHT" 3200  53]])
 
 (defn adjust-price [old-price]
-
-  (let  [numerator (- (rand-int 30) 15)
-         adjustment (* numerator 0.01)]
+  (let  [adjustment (- (rand-int 6) 3)]
     (+ old-price adjustment)))
 
 (defn make-ticker [symbol t start-price]
   (let [c (chan)]
     (go
      (loop [price start-price]
-       (let [new-price (+ price 1)]
+       (let [new-price (adjust-price price)]
          (<! (timeout t))
          (>! c {:symbol symbol :price new-price})
          (recur new-price))))
     c))
-
-(def stocks [ ;; symbol min-interval starting-price
-             ["AAPL" 1000 537 ]
-             ["AMZN" 4000 345]
-             ["CSCO" 4000  22]
-             ["EBAY" 2000 55]
-             ["GOOG" 8000 1127]
-             ["IBM" 2000  192]
-             ["MSFT" 5000 40]
-             ["ORCL" 10000 39]
-             ["RHT" 12000  53]
-             ["T" 6000 35]])
 
 (defn run-sim []
   (let [ticker (async/merge
@@ -140,5 +125,42 @@
          (log (str x "-" (<! ticker)))
          (recur (inc x)))))))
 
-#_(run-sim)
+(do
+  (clear)
+  (run-sim))
+
+(clear)
+
+(defn my-ints []
+  (async/to-chan (range 10)))
+
+(let [c (my-ints)]
+  (go
+   (dotimes [n 10]
+     (log (<! c)))))
+
+;; leaving in one of my mistakes:
+;; when my-ints is exhausted, the channel is closed
+;; reading from a closed channel returns nil immediately
+#_(let [c (my-ints)]
+  (go
+   (while true
+     (log (<! c)))))
+
+(let [c (my-ints)
+      c2 (async/map< inc c)]
+  (go
+   (dotimes [n 10]
+   (log (<! c2)))))
+
+(clear)
+
+(let [c (my-ints)]
+  (go
+   (log (<! (async/reduce + 0 c)))))
+
+(let [c (my-ints)
+      f (async/filter< odd? c)]
+  (go
+   (log (<! (async/reduce + 0 f)))))
 
