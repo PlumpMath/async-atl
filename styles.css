@@ -4,7 +4,7 @@ body {
 }
 
 div {
-  width: 80%;
+  width: 90%;
   margin: auto;
 }
 
@@ -12,7 +12,7 @@ div {
   background-color: white;
   font-size: 24px;
   color: blue;
-  height: 600px;
+  height: 500px;
   overflow-y: scroll;
 }
 
